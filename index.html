@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading Practice</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Alinha ao topo para evitar que o conteúdo fique muito apertado */
+            min-height: 100vh;
+            padding: 16px; /* Padding padrão menor para mobile */
+            box-sizing: border-box;
+        }
+        /* Ajusta o padding para telas maiores */
+        @media (min-width: 640px) { /* sm breakpoint */
+            body {
+                padding: 20px;
+            }
+        }
+        @media (min-width: 1024px) { /* lg breakpoint */
+            body {
+                padding: 40px;
+            }
+        }
+
+        .container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 24px; /* Padding padrão do container */
+            max-width: 900px;
+            width: 100%;
+            margin-top: 20px; /* Espaçamento do topo */
+        }
+        /* Ajusta o padding do container para telas maiores */
+        @media (min-width: 640px) { /* sm breakpoint */
+            .container {
+                padding: 30px;
+            }
+        }
+        @media (min-width: 768px) { /* md breakpoint */
+            .container {
+                padding: 40px;
+            }
+        }
+
+        .button-primary {
+            @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-all duration-200 ease-in-out;
+        }
+        .button-secondary {
+            @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg shadow-sm transition-all duration-200 ease-in-out;
+        }
+        .button-danger {
+            @apply bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-all duration-200 ease-in-out;
+        }
+        .textarea-styled {
+            @apply w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ease-in-out;
+        }
+        .input-styled {
+            @apply w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ease-in-out;
+        }
+        .message-box {
+            @apply p-4 mt-4 rounded-lg text-sm;
+        }
+        .message-box.info {
+            @apply bg-blue-100 text-blue-800;
+        }
+        .message-box.error {
+            @apply bg-red-100 text-red-800;
+        }
+        .message-box.success {
+            @apply bg-green-100 text-green-800;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-4xl font-bold text-center text-gray-800 mb-8">Reading Practice</h1>
+        <p class="text-center text-gray-600 mb-6">
+            Pratique sua leitura em inglês. Grave-se lendo o texto abaixo e ouça sua pronúncia.
+        </p>
+
+        <!-- Mensagens do sistema -->
+        <div id="messageContainer" class="mb-6"></div>
+
+        <!-- Modo Professor/Aluno -->
+        <div class="flex justify-center mb-6">
+            <button id="toggleTeacherMode" class="button-secondary">
+                <span id="modeText">Modo Aluno</span>
+            </button>
+        </div>
+
+        <!-- ID do Usuário (para fins de demonstração e depuração) -->
+        <div class="mb-6 p-3 bg-gray-100 rounded-lg text-gray-700 text-sm">
+            <p><strong>ID do Usuário:</strong> <span id="userIdDisplay">Carregando...</span></p>
+        </div>
+
+        <!-- Seção de Leitura -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Texto para Leitura</h2>
+            <div id="loadingText" class="text-center text-gray-500 hidden">
+                <span class="loading-spinner"></span> Carregando texto...
+            </div>
+            <div id="readingTextDisplay" class="p-6 bg-blue-50 rounded-lg text-gray-800 leading-relaxed text-lg shadow-inner">
+                Carregando texto...
+            </div>
+        </div>
+
+        <!-- Seção de Instruções e Recomendações -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Instruções e Recomendações</h2>
+            <div id="readingInstructionsDisplay" class="p-6 bg-green-50 rounded-lg text-gray-700 leading-relaxed text-base shadow-inner">
+                Carregando instruções...
+            </div>
+        </div>
+
+        <!-- Seção de Gravação -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Sua Gravação</h2>
+            <div class="flex flex-wrap gap-4 justify-center">
+                <button id="recordButton" class="button-primary">Gravar</button>
+                <button id="stopButton" class="button-danger" disabled>Parar Gravação</button>
+                <button id="playButton" class="button-secondary" disabled>Ouvir Gravação</button>
+                <button id="downloadButton" class="button-secondary" disabled>Download Gravação</button>
+            </div>
+            <audio id="audioPlayback" class="w-full mt-4 hidden" controls></audio>
+        </div>
+
+        <!-- Seção do Professor (Inicialmente oculta) -->
+        <div id="teacherSection" class="p-6 bg-purple-50 rounded-lg shadow-inner hidden">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Modo Professor: Editar Texto e Instruções</h2>
+            <label for="teacherTextInput" class="block text-gray-700 text-sm font-bold mb-2">Texto de Leitura:</label>
+            <textarea id="teacherTextInput" class="textarea-styled h-48 mb-4" placeholder="Digite o texto de leitura aqui..."></textarea>
+
+            <label for="teacherInstructionsInput" class="block text-gray-700 text-sm font-bold mb-2">Instruções e Recomendações de Leitura:</label>
+            <textarea id="teacherInstructionsInput" class="textarea-styled h-32 mb-4" placeholder="Adicione instruções, dicas de pronúncia ou atividades relacionadas ao texto..."></textarea>
+
+            <div class="flex justify-end">
+                <button id="saveSettingsButton" class="button-primary">Salvar Configurações</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // Variáveis globais fornecidas pelo ambiente Canvas
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app;
+        let db;
+        let auth;
+        let userId;
+        let mediaRecorder;
+        let audioChunks = [];
+        let audioBlob;
+        let isTeacherMode = false;
+
+        const appSettingsDocRefPath = `artifacts/${appId}/public/data/appSettings/currentSettings`;
+        const defaultAppSettings = {
+            readingText: "To deliver effective work presentations, clarity and engagement are key. Start by understanding your audience and tailoring your content to their needs and interests. Structure your presentation logically with a clear introduction, main points, and a concise conclusion. Use visuals sparingly but effectively, ensuring they support your message rather than distracting from it. Practice your delivery to ensure a smooth flow, maintain eye contact, and speak with confidence. Finally, be prepared for questions and allocate time for discussion, fostering an interactive and memorable experience for your audience.",
+            readingInstructions: "Leia o texto em voz alta, prestando atenção à entonação e ao ritmo. Tente imitar um falante nativo. Foco nas palavras 'clarity', 'engagement', 'tailoring', 'concise', 'sparingly', 'fostering', 'memorable'."
+        };
+
+        // Elementos do DOM
+        const messageContainer = document.getElementById('messageContainer');
+        const recordButton = document.getElementById('recordButton');
+        const stopButton = document.getElementById('stopButton');
+        const playButton = document.getElementById('playButton');
+        const downloadButton = document.getElementById('downloadButton');
+        const audioPlayback = document.getElementById('audioPlayback');
+        const readingTextDisplay = document.getElementById('readingTextDisplay');
+        const readingInstructionsDisplay = document.getElementById('readingInstructionsDisplay');
+        const loadingText = document.getElementById('loadingText');
+        const toggleTeacherModeButton = document.getElementById('toggleTeacherMode');
+        const modeTextSpan = document.getElementById('modeText');
+        const teacherSection = document.getElementById('teacherSection');
+        const teacherTextInput = document.getElementById('teacherTextInput');
+        const teacherInstructionsInput = document.getElementById('teacherInstructionsInput');
+        const saveSettingsButton = document.getElementById('saveSettingsButton');
+        const userIdDisplay = document.getElementById('userIdDisplay');
+
+        // --- Funções de UI e Mensagens ---
+        function showMessage(type, message) {
+            messageContainer.innerHTML = `<div class="message-box ${type}">${message}</div>`;
+            setTimeout(() => {
+                messageContainer.innerHTML = '';
+            }, 5000); // Remove a mensagem após 5 segundos
+        }
+
+        function toggleLoading(show) {
+            if (show) {
+                loadingText.classList.remove('hidden');
+                readingTextDisplay.classList.add('hidden');
+            } else {
+                loadingText.classList.add('hidden');
+                readingTextDisplay.classList.remove('hidden');
+            }
+        }
+
+        function setRecordingButtonsState(recording) {
+            recordButton.disabled = recording;
+            stopButton.disabled = !recording;
+            playButton.disabled = recording || !audioBlob;
+            downloadButton.disabled = recording || !audioBlob; // Habilita/Desabilita botão de download
+        }
+
+        // --- Funções de Firebase ---
+        async function initializeFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Autenticar o usuário
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // Listener para o estado de autenticação
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = userId;
+                        console.log("Usuário autenticado:", userId);
+                        loadAppSettings(); // Carrega as configurações após a autenticação
+                    } else {
+                        userId = crypto.randomUUID(); // Fallback para ID de usuário anônimo
+                        userIdDisplay.textContent = userId + " (Anônimo)";
+                        console.log("Usuário anônimo:", userId);
+                        loadAppSettings(); // Carrega as configurações mesmo para usuários anônimos
+                    }
+                });
+
+            } catch (error) {
+                console.error("Erro ao inicializar Firebase ou autenticar:", error);
+                showMessage('error', 'Erro ao carregar o aplicativo. Tente novamente mais tarde.');
+            }
+        }
+
+        async function loadAppSettings() {
+            toggleLoading(true); // Ativa o loading para o texto de leitura
+            try {
+                // Usa onSnapshot para escutar mudanças em tempo real nas configurações
+                onSnapshot(doc(db, appSettingsDocRefPath), async (docSnapshot) => {
+                    let currentText = defaultAppSettings.readingText;
+                    let currentInstructions = defaultAppSettings.readingInstructions;
+
+                    if (docSnapshot.exists()) {
+                        const data = docSnapshot.data();
+                        currentText = data.readingText || defaultAppSettings.readingText;
+                        currentInstructions = data.readingInstructions || defaultAppSettings.readingInstructions;
+                        showMessage('success', 'Configurações e texto de leitura carregados com sucesso!');
+                    } else {
+                        // Se o documento não existe, define os valores padrão e os salva
+                        await saveAppSettings(defaultAppSettings.readingText, defaultAppSettings.readingInstructions);
+                        showMessage('info', 'Nenhuma configuração encontrada, texto padrão carregado e salvo.');
+                    }
+
+                    readingTextDisplay.textContent = currentText;
+                    teacherTextInput.value = currentText; // Sincroniza com a área de texto do professor
+                    readingInstructionsDisplay.textContent = currentInstructions; // Exibe as instruções
+                    teacherInstructionsInput.value = currentInstructions; // Sincroniza com a área de texto das instruções
+
+                    toggleLoading(false); // Desativa o loading
+                }, (error) => {
+                    console.error("Erro ao escutar as configurações do aplicativo:", error);
+                    showMessage('error', 'Erro ao carregar as configurações do aplicativo.');
+                    readingTextDisplay.textContent = 'Erro ao carregar o texto.';
+                    readingInstructionsDisplay.textContent = 'Erro ao carregar as instruções.';
+                    toggleLoading(false);
+                });
+            } catch (error) {
+                console.error("Erro ao configurar listener das configurações do aplicativo:", error);
+                showMessage('error', 'Erro ao carregar as configurações do aplicativo.');
+                readingTextDisplay.textContent = 'Erro ao carregar o texto.';
+                readingInstructionsDisplay.textContent = 'Erro ao carregar as instruções.';
+                toggleLoading(false);
+            }
+        }
+
+        async function saveAppSettings(text, instructions) {
+            try {
+                await setDoc(doc(db, appSettingsDocRefPath), {
+                    readingText: text,
+                    readingInstructions: instructions
+                });
+                showMessage('success', 'Configurações salvas com sucesso!');
+            } catch (error) {
+                console.error("Erro ao salvar as configurações:", error);
+                showMessage('error', 'Erro ao salvar as configurações. Verifique sua conexão.');
+            }
+        }
+
+        // --- Funções de Gravação de Áudio ---
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    audioPlayback.src = URL.createObjectURL(audioBlob);
+                    setRecordingButtonsState(false);
+                    showMessage('info', 'Gravação finalizada. Você pode ouvi-la agora.');
+                };
+
+                mediaRecorder.start();
+                setRecordingButtonsState(true);
+                showMessage('info', 'Gravando... Clique em "Parar Gravação" para finalizar.');
+            } catch (error) {
+                console.error('Erro ao iniciar gravação:', error);
+                showMessage('error', 'Não foi possível iniciar a gravação. Verifique as permissões do microfone.');
+                setRecordingButtonsState(false);
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                // A stream é parada no onstop do mediaRecorder
+            }
+        }
+
+        function playRecording() {
+            if (audioPlayback.src) {
+                audioPlayback.play();
+                showMessage('info', 'Reproduzindo gravação...');
+            } else {
+                showMessage('info', 'Nenhuma gravação para reproduzir.');
+            }
+        }
+
+        // --- Função de Download de Áudio ---
+        function downloadRecording() {
+            if (audioBlob) {
+                const url = URL.createObjectURL(audioBlob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `gravacao_leitura_${Date.now()}.webm`; // Nome do arquivo com timestamp
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url); // Libera o objeto URL
+                a.remove();
+                showMessage('success', 'Download da gravação iniciado!');
+            } else {
+                showMessage('error', 'Nenhuma gravação disponível para download.');
+            }
+        }
+
+        // --- Event Listeners ---
+        recordButton.addEventListener('click', startRecording);
+        stopButton.addEventListener('click', stopRecording);
+        playButton.addEventListener('click', playRecording);
+        downloadButton.addEventListener('click', downloadRecording);
+
+        toggleTeacherModeButton.addEventListener('click', () => {
+            isTeacherMode = !isTeacherMode;
+            if (isTeacherMode) {
+                modeTextSpan.textContent = 'Modo Professor';
+                teacherSection.classList.remove('hidden');
+                showMessage('info', 'Você está no Modo Professor. Edite o texto e as instruções.');
+            } else {
+                modeTextSpan.textContent = 'Modo Aluno';
+                teacherSection.classList.add('hidden');
+                showMessage('info', 'Você está no Modo Aluno. Pratique sua leitura!');
+            }
+        });
+
+        saveSettingsButton.addEventListener('click', () => {
+            const newText = teacherTextInput.value.trim();
+            const newInstructions = teacherInstructionsInput.value.trim();
+            if (newText) {
+                saveAppSettings(newText, newInstructions);
+            } else {
+                showMessage('error', 'O texto de leitura não pode estar vazio.');
+            }
+        });
+
+        // Inicializa o Firebase e carrega as configurações ao carregar a página
+        window.onload = initializeFirebase;
+
+    </script>
+</body>
+</html>
