@@ -105,26 +105,12 @@
         <!-- Mensagens do sistema -->
         <div id="messageContainer" class="mb-6"></div>
 
-        <!-- Modo Professor/Aluno -->
-        <div class="flex justify-center mb-6">
-            <button id="toggleTeacherMode" class="button-secondary">
-                <span id="modeText">Modo Aluno</span>
-            </button>
-        </div>
-
-        <!-- ID do Usuário (para fins de demonstração e depuração) -->
-        <div class="mb-6 p-3 bg-gray-100 rounded-lg text-gray-700 text-sm">
-            <p><strong>ID do Usuário:</strong> <span id="userIdDisplay">Carregando...</span></p>
-        </div>
-
         <!-- Seção de Leitura -->
         <div class="mb-8">
             <h2 class="text-2xl font-semibold text-gray-700 mb-4">Texto para Leitura</h2>
-            <div id="loadingText" class="text-center text-gray-500 hidden">
-                <span class="loading-spinner"></span> Carregando texto...
-            </div>
             <div id="readingTextDisplay" class="p-6 bg-blue-50 rounded-lg text-gray-800 leading-relaxed text-lg shadow-inner">
-                Carregando texto...
+                <!-- O TEXTO DE LEITURA É EDITADO DIRETAMENTE AQUI -->
+                To deliver effective work presentations, clarity and engagement are key. Start by understanding your audience and tailoring your content to their needs and interests. Structure your presentation logically with a clear introduction, main points, and a concise conclusion. Use visuals sparingly but effectively, ensuring they support your message rather than distracting from it. Practice your delivery to ensure a smooth flow, maintain eye contact, and speak with confidence. Finally, be prepared for questions and allocate time for discussion, fostering an interactive and memorable experience for your audience.
             </div>
         </div>
 
@@ -132,7 +118,8 @@
         <div class="mb-8">
             <h2 class="text-2xl font-semibold text-gray-700 mb-4">Instruções e Recomendações</h2>
             <div id="readingInstructionsDisplay" class="p-6 bg-green-50 rounded-lg text-gray-700 leading-relaxed text-base shadow-inner">
-                Carregando instruções...
+                <!-- AS INSTRUÇÕES SÃO EDITADAS DIRETAMENTE AQUI -->
+                Leia o texto em voz alta, prestando atenção à entonação e ao ritmo. Tente imitar um falante nativo. Foco nas palavras 'clarity', 'engagement', 'tailoring', 'concise', 'sparingly', 'fostering', 'memorable'.
             </div>
         </div>
 
@@ -147,47 +134,12 @@
             </div>
             <audio id="audioPlayback" class="w-full mt-4 hidden" controls></audio>
         </div>
-
-        <!-- Seção do Professor (Inicialmente oculta) -->
-        <div id="teacherSection" class="p-6 bg-purple-50 rounded-lg shadow-inner hidden">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Modo Professor: Editar Texto e Instruções</h2>
-            <label for="teacherTextInput" class="block text-gray-700 text-sm font-bold mb-2">Texto de Leitura:</label>
-            <textarea id="teacherTextInput" class="textarea-styled h-48 mb-4" placeholder="Digite o texto de leitura aqui..."></textarea>
-
-            <label for="teacherInstructionsInput" class="block text-gray-700 text-sm font-bold mb-2">Instruções e Recomendações de Leitura:</label>
-            <textarea id="teacherInstructionsInput" class="textarea-styled h-32 mb-4" placeholder="Adicione instruções, dicas de pronúncia ou atividades relacionadas ao texto..."></textarea>
-
-            <div class="flex justify-end">
-                <button id="saveSettingsButton" class="button-primary">Salvar Configurações</button>
-            </div>
-        </div>
     </div>
 
-    <!-- Firebase SDK -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-        // Variáveis globais fornecidas pelo ambiente Canvas
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        let app;
-        let db;
-        let auth;
-        let userId;
         let mediaRecorder;
         let audioChunks = [];
         let audioBlob;
-        let isTeacherMode = false;
-
-        const appSettingsDocRefPath = `artifacts/${appId}/public/data/appSettings/currentSettings`;
-        const defaultAppSettings = {
-            readingText: "To deliver effective work presentations, clarity and engagement are key. Start by understanding your audience and tailoring your content to their needs and interests. Structure your presentation logically with a clear introduction, main points, and a concise conclusion. Use visuals sparingly but effectively, ensuring they support your message rather than distracting from it. Practice your delivery to ensure a smooth flow, maintain eye contact, and speak with confidence. Finally, be prepared for questions and allocate time for discussion, fostering an interactive and memorable experience for your audience.",
-            readingInstructions: "Leia o texto em voz alta, prestando atenção à entonação e ao ritmo. Tente imitar um falante nativo. Foco nas palavras 'clarity', 'engagement', 'tailoring', 'concise', 'sparingly', 'fostering', 'memorable'."
-        };
 
         // Elementos do DOM
         const messageContainer = document.getElementById('messageContainer');
@@ -198,127 +150,20 @@
         const audioPlayback = document.getElementById('audioPlayback');
         const readingTextDisplay = document.getElementById('readingTextDisplay');
         const readingInstructionsDisplay = document.getElementById('readingInstructionsDisplay');
-        const loadingText = document.getElementById('loadingText');
-        const toggleTeacherModeButton = document.getElementById('toggleTeacherMode');
-        const modeTextSpan = document.getElementById('modeText');
-        const teacherSection = document.getElementById('teacherSection');
-        const teacherTextInput = document.getElementById('teacherTextInput');
-        const teacherInstructionsInput = document.getElementById('teacherInstructionsInput');
-        const saveSettingsButton = document.getElementById('saveSettingsButton');
-        const userIdDisplay = document.getElementById('userIdDisplay');
 
         // --- Funções de UI e Mensagens ---
         function showMessage(type, message) {
             messageContainer.innerHTML = `<div class="message-box ${type}">${message}</div>`;
             setTimeout(() => {
                 messageContainer.innerHTML = '';
-            }, 5000); // Remove a mensagem após 5 segundos
-        }
-
-        function toggleLoading(show) {
-            if (show) {
-                loadingText.classList.remove('hidden');
-                readingTextDisplay.classList.add('hidden');
-            } else {
-                loadingText.classList.add('hidden');
-                readingTextDisplay.classList.remove('hidden');
-            }
+            }, 5000); 
         }
 
         function setRecordingButtonsState(recording) {
             recordButton.disabled = recording;
             stopButton.disabled = !recording;
             playButton.disabled = recording || !audioBlob;
-            downloadButton.disabled = recording || !audioBlob; // Habilita/Desabilita botão de download
-        }
-
-        // --- Funções de Firebase ---
-        async function initializeFirebase() {
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                // Autenticar o usuário
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                // Listener para o estado de autenticação
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        userIdDisplay.textContent = userId;
-                        console.log("Usuário autenticado:", userId);
-                        loadAppSettings(); // Carrega as configurações após a autenticação
-                    } else {
-                        userId = crypto.randomUUID(); // Fallback para ID de usuário anônimo
-                        userIdDisplay.textContent = userId + " (Anônimo)";
-                        console.log("Usuário anônimo:", userId);
-                        loadAppSettings(); // Carrega as configurações mesmo para usuários anônimos
-                    }
-                });
-
-            } catch (error) {
-                console.error("Erro ao inicializar Firebase ou autenticar:", error);
-                showMessage('error', 'Erro ao carregar o aplicativo. Tente novamente mais tarde.');
-            }
-        }
-
-        async function loadAppSettings() {
-            toggleLoading(true); // Ativa o loading para o texto de leitura
-            try {
-                // Usa onSnapshot para escutar mudanças em tempo real nas configurações
-                onSnapshot(doc(db, appSettingsDocRefPath), async (docSnapshot) => {
-                    let currentText = defaultAppSettings.readingText;
-                    let currentInstructions = defaultAppSettings.readingInstructions;
-
-                    if (docSnapshot.exists()) {
-                        const data = docSnapshot.data();
-                        currentText = data.readingText || defaultAppSettings.readingText;
-                        currentInstructions = data.readingInstructions || defaultAppSettings.readingInstructions;
-                        showMessage('success', 'Configurações e texto de leitura carregados com sucesso!');
-                    } else {
-                        // Se o documento não existe, define os valores padrão e os salva
-                        await saveAppSettings(defaultAppSettings.readingText, defaultAppSettings.readingInstructions);
-                        showMessage('info', 'Nenhuma configuração encontrada, texto padrão carregado e salvo.');
-                    }
-
-                    readingTextDisplay.textContent = currentText;
-                    teacherTextInput.value = currentText; // Sincroniza com a área de texto do professor
-                    readingInstructionsDisplay.textContent = currentInstructions; // Exibe as instruções
-                    teacherInstructionsInput.value = currentInstructions; // Sincroniza com a área de texto das instruções
-
-                    toggleLoading(false); // Desativa o loading
-                }, (error) => {
-                    console.error("Erro ao escutar as configurações do aplicativo:", error);
-                    showMessage('error', 'Erro ao carregar as configurações do aplicativo.');
-                    readingTextDisplay.textContent = 'Erro ao carregar o texto.';
-                    readingInstructionsDisplay.textContent = 'Erro ao carregar as instruções.';
-                    toggleLoading(false);
-                });
-            } catch (error) {
-                console.error("Erro ao configurar listener das configurações do aplicativo:", error);
-                showMessage('error', 'Erro ao carregar as configurações do aplicativo.');
-                readingTextDisplay.textContent = 'Erro ao carregar o texto.';
-                readingInstructionsDisplay.textContent = 'Erro ao carregar as instruções.';
-                toggleLoading(false);
-            }
-        }
-
-        async function saveAppSettings(text, instructions) {
-            try {
-                await setDoc(doc(db, appSettingsDocRefPath), {
-                    readingText: text,
-                    readingInstructions: instructions
-                });
-                showMessage('success', 'Configurações salvas com sucesso!');
-            } catch (error) {
-                console.error("Erro ao salvar as configurações:", error);
-                showMessage('error', 'Erro ao salvar as configurações. Verifique sua conexão.');
-            }
+            downloadButton.disabled = recording || !audioBlob;
         }
 
         // --- Funções de Gravação de Áudio ---
@@ -352,7 +197,6 @@
         function stopRecording() {
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
-                // A stream é parada no onstop do mediaRecorder
             }
         }
 
@@ -372,10 +216,10 @@
                 const a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = url;
-                a.download = `gravacao_leitura_${Date.now()}.webm`; // Nome do arquivo com timestamp
+                a.download = `gravacao_leitura_${Date.now()}.webm`;
                 document.body.appendChild(a);
                 a.click();
-                window.URL.revokeObjectURL(url); // Libera o objeto URL
+                window.URL.revokeObjectURL(url);
                 a.remove();
                 showMessage('success', 'Download da gravação iniciado!');
             } else {
@@ -389,31 +233,11 @@
         playButton.addEventListener('click', playRecording);
         downloadButton.addEventListener('click', downloadRecording);
 
-        toggleTeacherModeButton.addEventListener('click', () => {
-            isTeacherMode = !isTeacherMode;
-            if (isTeacherMode) {
-                modeTextSpan.textContent = 'Modo Professor';
-                teacherSection.classList.remove('hidden');
-                showMessage('info', 'Você está no Modo Professor. Edite o texto e as instruções.');
-            } else {
-                modeTextSpan.textContent = 'Modo Aluno';
-                teacherSection.classList.add('hidden');
-                showMessage('info', 'Você está no Modo Aluno. Pratique sua leitura!');
-            }
-        });
-
-        saveSettingsButton.addEventListener('click', () => {
-            const newText = teacherTextInput.value.trim();
-            const newInstructions = teacherInstructionsInput.value.trim();
-            if (newText) {
-                saveAppSettings(newText, newInstructions);
-            } else {
-                showMessage('error', 'O texto de leitura não pode estar vazio.');
-            }
-        });
-
-        // Inicializa o Firebase e carrega as configurações ao carregar a página
-        window.onload = initializeFirebase;
+        // Inicializa o estado dos botões ao carregar a página
+        window.onload = () => {
+            setRecordingButtonsState(false);
+            showMessage('info', 'Aplicativo pronto para uso. Clique em Gravar para começar!');
+        };
 
     </script>
 </body>
